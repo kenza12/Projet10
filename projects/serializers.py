@@ -5,23 +5,36 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
+
+class ContributorCreateSerializer(serializers.ModelSerializer):
+    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+
+    class Meta:
+        model = Contributor
+        fields = ['user']
+
+    def create(self, validated_data):
+        project = self.context['project']
+        user = validated_data['user']
+        return Contributor.objects.create(project=project, user=user)
+
 class ContributorCreateSerializer(serializers.ModelSerializer):
     user = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.all(), 
-        required=True
+        queryset=User.objects.all(),
+        write_only=True
     )
 
     class Meta:
         model = Contributor
-        fields = ['user', 'project']
+        fields = ['user']
+        extra_kwargs = {
+            'user': {'write_only': True},
+        }
 
-    def __init__(self, *args, **kwargs):
-        user = kwargs['context']['request'].user
-        super().__init__(*args, **kwargs)
-        # Exclure l'auteur du projet de la liste des utilisateurs pouvant être ajoutés
-        self.fields['user'].queryset = User.objects.exclude(id=user.id)
-        # Limiter les projets disponibles à ceux où l'utilisateur est auteur
-        self.fields['project'].queryset = Project.objects.filter(author=user)
+    def create(self, validated_data):
+        project = self.context['project']
+        user = validated_data['user']
+        return Contributor.objects.create(project=project, user=user)
 
 class ContributorListSerializer(serializers.ModelSerializer):
     """

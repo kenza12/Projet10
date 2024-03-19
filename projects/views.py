@@ -6,57 +6,55 @@ from .permissions import IsProjectAuthorOrReadOnly, IsProjectAuthorForContributo
 
 class ProjectViewSet(viewsets.ModelViewSet):
     """
-    ViewSet pour la gestion des projets.
-    Permet aux auteurs de projets de les modifier ou de les supprimer.
-    Les contributeurs et les autres utilisateurs ont un accès en lecture seulement.
+    ViewSet pour la gestion des projets. Permet aux auteurs de projets de les modifier
+    ou de les supprimer. Les contributeurs et les autres utilisateurs ont un accès en lecture seulement.
     """
     queryset = Project.objects.all()
     permission_classes = [permissions.IsAuthenticated, IsProjectAuthorOrReadOnly]
-    serializer_class = ProjectListSerializer
-    detail_serializer_class = ProjectDetailSerializer
 
     def get_serializer_class(self):
+        # Sélectionner le bon serializer en fonction de l'action
         if self.action == 'retrieve':
-            return self.detail_serializer_class
-        return super().get_serializer_class()
+            return ProjectDetailSerializer
+        return ProjectListSerializer
 
     def get_queryset(self):
+        # Filtrer les projets en fonction de l'utilisateur connecté
         user = self.request.user
-        user_id_param = self.request.query_params.get('user_id')
-        if user_id_param and int(user_id_param) != user.id:
-            return Project.objects.none()
-        return Project.objects.filter(
+        return self.queryset.filter(
             contributors__user=user
-        ).distinct() | Project.objects.filter(author=user).distinct()
+        ).distinct() | self.queryset.filter(author=user).distinct()
 
     def perform_create(self, serializer):
+        # L'auteur du projet est automatiquement défini comme contributeur
         project = serializer.save(author=self.request.user)
         Contributor.objects.create(user=project.author, project=project)
 
 
 class ContributorViewSet(viewsets.ModelViewSet):
     """
-    ViewSet pour la gestion des contributeurs des projets. Permet de créer, lire, modifier et supprimer des contributeurs.
-    Le contributeur d'un projet (différent de l'auteur) n'aura que le droit de lecture.
+    ViewSet pour la gestion des contributeurs des projets. 
+    Permet aux auteurs et aux contributeurs d'un projet d'accéder, de créer, 
+    de modifier et de supprimer des contributeurs.
     """
     queryset = Contributor.objects.all()
+    serializer_class = ContributorListSerializer
     permission_classes = [permissions.IsAuthenticated, IsProjectAuthorForContributor]
 
     def get_serializer_class(self):
-        if self.action in ['create', 'update', 'partial_update']:
-            return ContributorCreateSerializer
-        return ContributorListSerializer
+        # Utiliser des serializers différents selon l'action
+        if self.action in ['list', 'retrieve']:
+            return ContributorListSerializer
+        return ContributorCreateSerializer
+
+    def get_queryset(self):
+        # Filtrer les contributeurs par projet si 'project_pk' est présent dans l'URL
+        project_pk = self.kwargs.get('project_pk')
+        if project_pk:
+            return self.queryset.filter(project_id=project_pk)
+        return self.queryset
 
     def perform_create(self, serializer):
-        # project = serializer.validated_data.get('project')
-        # if self.request.user != project.author:
-        #     raise permissions.PermissionDenied('Seul l’auteur du projet peut ajouter des contributeurs.')
-        # if Contributor.objects.filter(project=project, user=serializer.validated_data.get('user')).exists():
-        #     raise serializers.ValidationError('Cet utilisateur est déjà contributeur du projet.')
-        serializer.save()
-    
-    def get_serializer_context(self):
-        """
-        Retourne le contexte pour le serializer. Ajoute l'utilisateur actuel au contexte.
-        """
-        return {'request': self.request, 'format': self.format_kwarg, 'view': self}
+        # Associer automatiquement le projet en fonction de l'URL
+        project = Project.objects.get(pk=self.kwargs.get('project_pk'))
+        serializer.save(project=project)

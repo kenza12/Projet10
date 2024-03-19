@@ -1,6 +1,7 @@
 from django.db import models
 from projects.models import Project
 from users.models import User
+import uuid
 
 
 class Issue(models.Model):
@@ -33,8 +34,8 @@ class Issue(models.Model):
     def __str__(self):
         return self.title
 
-
 class Comment(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     text = models.TextField()
     issue = models.ForeignKey(Issue, on_delete=models.CASCADE, related_name='comments')
     author = models.ForeignKey(User, on_delete=models.CASCADE)

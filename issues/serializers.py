@@ -4,35 +4,41 @@ from .models import Issue, Comment, Project, User
 
 class IssueSerializer(serializers.ModelSerializer):
     author = serializers.ReadOnlyField(source='author.username')
-    project = serializers.PrimaryKeyRelatedField(
-        queryset=Project.objects.none(),  # Sera remplacé dans la view
-        required=True
-    )
+    project = serializers.PrimaryKeyRelatedField(read_only=True)
+
+    # Le queryset pour assignee sera défini dans la vue basé sur le projet sélectionné
     assignee = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.none(),  # Sera remplacé dans la view
-        required=False,
+        queryset=User.objects.none(), 
+        required=False, 
         allow_null=True
     )
 
     class Meta:
         model = Issue
-        fields = ['id', 'title', 'description', 'project', 'tag', 'status', 'priority', 'assignee', 'author', 'created_time']
-        read_only_fields = ['author']
+        fields = ['id', 'title', 'description', 'project', 'tag', 'status', 
+                  'priority', 'assignee', 'author', 'created_time']
+        read_only_fields = ['author', 'project']
 
     def __init__(self, *args, **kwargs):
-        user = kwargs['context']['request'].user
+        """
+        Initialisation du serializer. Configure le queryset pour l'assignee
+        basé sur le projet spécifié dans l'URL.
+        """
         super().__init__(*args, **kwargs)
-        self.fields['project'].queryset = Project.objects.filter(
-            contributors__user=user
-        )
-        self.fields['assignee'].queryset = User.objects.filter(
-            contributions__project__contributors__user=user
-        )
+
+        # Configure le queryset pour 'assignee' en fonction du projet spécifié
+        if 'view' in self.context and hasattr(self.context['view'], 'kwargs'):
+            project_pk = self.context['view'].kwargs.get('project_pk')
+            if project_pk:
+                self.fields['assignee'].queryset = User.objects.filter(
+                    contributions__project__id=project_pk
+                )
 
 class CommentSerializer(serializers.ModelSerializer):
     author = serializers.ReadOnlyField(source='author.username')
+    issue = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
         model = Comment
         fields = ['id', 'issue', 'text', 'author', 'created_time']
-        read_only_fields = ['author']
+        read_only_fields = ['author', 'issue']  # issue est toujours en lecture seule
