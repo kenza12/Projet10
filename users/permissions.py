@@ -4,12 +4,22 @@ from rest_framework import permissions
 
 class IsSelfOrAdmin(permissions.BasePermission):
     """
-    Permission personnalisée pour permettre aux superutilisateurs de gérer tous les profils,
-    tandis que les utilisateurs réguliers ne peuvent gérer que leur propre profil.
+    A custom permission class to allow superusers to manage all profiles,
+    while regular users can only manage their own.
     """
     def has_object_permission(self, request, view, obj):
-        # Autoriser l'accès complet pour les superutilisateurs
+        """
+        Checks whether the request has permission to act on the given object.
+
+        Args:
+            request: The HTTP request.
+            view: The view which is being accessed.
+            obj: The object being accessed or modified.
+
+        Returns:
+            bool: True if the user is a superuser or if the obj belongs to the user, False otherwise.
+        """
+
         if request.user.is_superuser:
             return True
-        # Autoriser l'accès complet uniquement à l'utilisateur concerné pour les autres
         return obj == request.user

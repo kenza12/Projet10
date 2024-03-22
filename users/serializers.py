@@ -2,7 +2,14 @@ from rest_framework import serializers
 from django.contrib.auth.hashers import make_password
 from .models import User
 
+
 class SignupUserSerializer(serializers.ModelSerializer):
+    """
+    Serializer for signing up a new user. Includes additional field for password confirmation.
+    Attributes:
+        password_confirm (CharField): A field to confirm the password for validation.
+    """
+
     password_confirm = serializers.CharField(write_only=True)
 
     class Meta:
@@ -28,10 +35,15 @@ class SignupUserSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         """
-        Create a new user instance.
+        Create and return a new User instance, given the validated data.
         """
-        validated_data.pop('password_confirm', None)  # Remove password_confirm before saving
+        
+        # Remove the password_confirm field as it's not needed for the User model.
+        validated_data.pop('password_confirm', None)
+        
+        # Hash the user's password before saving to the database.
         validated_data['password'] = make_password(validated_data['password'])
+
         return User.objects.create(**validated_data)
 
 

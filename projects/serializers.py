@@ -5,7 +5,6 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
-
 class ContributorCreateSerializer(serializers.ModelSerializer):
     user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
 
@@ -14,27 +13,19 @@ class ContributorCreateSerializer(serializers.ModelSerializer):
         fields = ['user']
 
     def create(self, validated_data):
-        project = self.context['project']
+        """
+        Create a new contributor instance.
+
+        Args:
+            validated_data (dict): Validated data for creating a contributor.
+
+        Returns:
+            Contributor: A new contributor instance.
+        """
         user = validated_data['user']
+        project = self.context['project']
         return Contributor.objects.create(project=project, user=user)
 
-class ContributorCreateSerializer(serializers.ModelSerializer):
-    user = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.all(),
-        write_only=True
-    )
-
-    class Meta:
-        model = Contributor
-        fields = ['user']
-        extra_kwargs = {
-            'user': {'write_only': True},
-        }
-
-    def create(self, validated_data):
-        project = self.context['project']
-        user = validated_data['user']
-        return Contributor.objects.create(project=project, user=user)
 
 class ContributorListSerializer(serializers.ModelSerializer):
     """

@@ -2,6 +2,7 @@ from rest_framework import viewsets, permissions
 from .models import Project, Contributor
 from .serializers import ProjectListSerializer, ProjectDetailSerializer, ContributorCreateSerializer, ContributorListSerializer
 from .permissions import IsProjectAuthorOrReadOnly, IsProjectAuthorForContributor
+from django.shortcuts import get_object_or_404
 
 
 class ProjectViewSet(viewsets.ModelViewSet):
@@ -55,6 +56,17 @@ class ContributorViewSet(viewsets.ModelViewSet):
         return self.queryset
 
     def perform_create(self, serializer):
-        # Associer automatiquement le projet en fonction de l'URL
-        project = Project.objects.get(pk=self.kwargs.get('project_pk'))
-        serializer.save(project=project)
+        """
+        Perform creation of a contributor. Automatically associates the contributor with the project based on the URL.
+
+        Args:
+            serializer (ContributorCreateSerializer): Serializer instance used for creating the contributor.
+        """
+        project_pk = self.kwargs.get('project_pk')
+        project = get_object_or_404(Project, pk=project_pk)
+
+        # Mettre à jour le contexte du serializer pour inclure le projet
+        serializer.context['project'] = project
+
+        # Enregistrer le contributeur avec le projet associé
+        serializer.save()
