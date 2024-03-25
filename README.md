@@ -42,13 +42,22 @@ Allows users to comment on specific issues, enhancing communication.
 
 ## Installation
 
-Clone the repository and set up the environment:
+Clone the repository:
 
 ```shell
 git clone https://github.com/kenza12/Projet10.git
 cd Projet10
+```
 
+Install Pipenv:
+
+```shell
 pip install pipenv
+```
+
+Install dependencies and activate the virtual environment:
+
+```shell
 pipenv install
 pipenv shell
 ```
