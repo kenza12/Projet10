@@ -1,11 +1,13 @@
 from rest_framework import serializers
 from .models import Project, Contributor
-from django.contrib.auth import get_user_model
+from users.models import User
 
-
-User = get_user_model()
 
 class ContributorCreateSerializer(serializers.ModelSerializer):
+    """
+    This serializer is responsible for validating and saving a new contributor to a project,
+    with the ability to select a user from all available users in the User model.
+    """
     user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
 
     class Meta:
@@ -29,8 +31,9 @@ class ContributorCreateSerializer(serializers.ModelSerializer):
 
 class ContributorListSerializer(serializers.ModelSerializer):
     """
-    Serializer pour lister les contributeurs avec des informations détaillées.
+    Serializer to list contributors with detailed information.
     """
+    # Read-only fields to display username and project title
     username = serializers.ReadOnlyField(source='user.username')
     project_title = serializers.ReadOnlyField(source='project.title')
 
@@ -38,19 +41,22 @@ class ContributorListSerializer(serializers.ModelSerializer):
         model = Contributor
         fields = ['id', 'user', 'username', 'project', 'project_title', 'date_joined']
 
+
 class ProjectListSerializer(serializers.ModelSerializer):
     """
-    Serializer pour la liste des projets.
+    Serializer for listing projects.
     """
     class Meta:
         model = Project
         fields = ['id', 'title', 'description', 'type', 'author', 'created_time']
-        read_only_fields = ['author']
+        read_only_fields = ['author'] # Author field is read-only
+
 
 class ProjectDetailSerializer(serializers.ModelSerializer):
     """
-    Serializer pour les détails d'un projet, incluant les contributeurs.
+    Serializer for detailed view of a project, including its contributors.
     """
+    # Nested serializer to include project contributors
     contributors = ContributorListSerializer(many=True, read_only=True)
 
     class Meta:
