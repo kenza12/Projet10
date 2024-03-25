@@ -3,10 +3,14 @@ from .models import Issue, Comment, Project, User
 
 
 class IssueSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the Issue model.
+    """
     author = serializers.ReadOnlyField(source='author.username')
     project = serializers.PrimaryKeyRelatedField(read_only=True)
 
-    # Le queryset pour assignee sera défini dans la vue basé sur le projet sélectionné
+    # Define a field for assignee, setting an initial empty queryset
+    # The queryset will be dynamically set based on the selected project
     assignee = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.none(), 
         required=False, 
@@ -21,24 +25,30 @@ class IssueSerializer(serializers.ModelSerializer):
 
     def __init__(self, *args, **kwargs):
         """
-        Initialisation du serializer. Configure le queryset pour l'assignee
-        basé sur le projet spécifié dans l'URL.
+        Overrides the default initialization to dynamically set the queryset for the 'assignee' field.
+        
+        The queryset for the 'assignee' field is determined based on the project to which the issue belongs.
+        This ensures that only users who are contributors to the relevant project can be assigned.
         """
         super().__init__(*args, **kwargs)
 
-        # Configure le queryset pour 'assignee' en fonction du projet spécifié
+        # Set the queryset for 'assignee' dynamically based on the project specified in the URL
         if 'view' in self.context and hasattr(self.context['view'], 'kwargs'):
             project_pk = self.context['view'].kwargs.get('project_pk')
             if project_pk:
+                # Filter users who are contributors to the specific project
                 self.fields['assignee'].queryset = User.objects.filter(
                     contributions__project__id=project_pk
                 )
 
 class CommentSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the Comment model.
+    """
     author = serializers.ReadOnlyField(source='author.username')
     issue = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
         model = Comment
         fields = ['id', 'issue', 'text', 'author', 'created_time']
-        read_only_fields = ['author', 'issue']  # issue est toujours en lecture seule
+        read_only_fields = ['author', 'issue']
