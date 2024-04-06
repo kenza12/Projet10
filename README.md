@@ -62,6 +62,12 @@ pipenv install
 pipenv shell
 ```
 
+If needed, execute the following command to apply database migrations:
+
+```shell
+python manage.py migrate
+```
+
 ## Running TaskTracker
 
 To start the server, execute the following command in your terminal:
